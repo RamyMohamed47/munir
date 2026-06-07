@@ -18,8 +18,6 @@ if (process.env.NODE_ENV === 'production') {
 
 app.use(cors());
 
-app.options('*', cors());
-
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -62,7 +60,11 @@ app.use(
 
 app.use(compression());
 
-app.all('*', (req, res, next) => {
+app.use('/api/v1/users', userRouter);
+app.use('/api/v1/messages', messageRouter);
+
+
+app.all('/{*any}', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 

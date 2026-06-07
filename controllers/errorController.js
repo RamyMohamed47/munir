@@ -1,5 +1,5 @@
-import AppError from '../utils/appError';
-import logger from '../utils/logger';
+import AppError from '../utils/appError.js';
+import logger from '../utils/logger.js';
 
 const handleCastErrorDB = (err) => {
   const message = `Invalid ${err.path}: ${err.value}`;
@@ -29,16 +29,19 @@ const handleValidationErrorDB = (err) => {
 
 const logError = (err, req, event = 'error.unexpected') => {
   const activeLogger = req.log || logger;
-  activeLogger.error({
-    event,
-    err,
-    name: err.name,
-    statusCode: err.statusCode || 500,
-    message: err.message,
-    method: req.method,
-    path: req.originalUrl,
-    requestId: req.id,
-  }, 'Unexpected application error');
+  activeLogger.error(
+    {
+      event,
+      err,
+      name: err.name,
+      statusCode: err.statusCode || 500,
+      message: err.message,
+      method: req.method,
+      path: req.originalUrl,
+      requestId: req.id,
+    },
+    'Unexpected application error',
+  );
 };
 
 const sendErrorDev = (err, req, res) => {

@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import logger from './utils/logger.js';
 
 dotenv.config({ path: './config.env' });
-const logger = require('./utils/logger');
 
 process.on('uncaughtException', (err) => {
   console.error(err);

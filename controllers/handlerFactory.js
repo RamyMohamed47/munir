@@ -2,7 +2,8 @@ import catchAsync from './../utils/catchAsync';
 import AppError from './../utils/appError';
 import APIFeatures from './../utils/apiFeatures.js';
 
-export function deleteOne(Model)  {   return catchAsync(async (req, res, next) => {
+export function deleteOne(Model) {
+  return catchAsync(async (req, res, next) => {
     const document = await Model.findByIdAndDelete(req.params.id);
     if (!document) {
       return next(new AppError('No document found with that ID', 404));
@@ -11,9 +12,11 @@ export function deleteOne(Model)  {   return catchAsync(async (req, res, next) =
       status: 'success',
       data: null,
     });
-  });   }
+  });
+}
 
-export function updateOne(Model)  {   return catchAsync(async (req, res, next) => {
+export function updateOne(Model) {
+  return catchAsync(async (req, res, next) => {
     const document = await Model.findByIdAndUpdate(req.params.id, req.body, {
       returnDocument: 'after',
       runValidators: true,
@@ -27,10 +30,11 @@ export function updateOne(Model)  {   return catchAsync(async (req, res, next) =
         data: document,
       },
     });
-  });   }
+  });
+}
 
-
-export function createOne(Model)  {   return catchAsync(async (req, res, next) => {
+export function createOne(Model) {
+  return catchAsync(async (req, res, next) => {
     const newDoc = await Model.create(req.body);
     res.status(201).json({
       status: 'success',
@@ -38,9 +42,11 @@ export function createOne(Model)  {   return catchAsync(async (req, res, next) =
         data: newDoc,
       },
     });
-  });   }
+  });
+}
 
-export function getOne(Model, populateOptions)  {   return catchAsync(async (req, res, next) => {
+export function getOne(Model, populateOptions) {
+  return catchAsync(async (req, res, next) => {
     let query = Model.findById(req.params.id);
     if (populateOptions) {
       query = query.populate(populateOptions);
@@ -55,10 +61,11 @@ export function getOne(Model, populateOptions)  {   return catchAsync(async (req
         data: doc,
       },
     });
-  });   }
+  });
+}
 
-export function getAll(Model)  {   return catchAsync(async (req, res, next) => {
-    
+export function getAll(Model) {
+  return catchAsync(async (req, res, next) => {
     let filter = {};
 
     const features = new APIFeatures(Model.find(filter), req.query)
@@ -74,4 +81,5 @@ export function getAll(Model)  {   return catchAsync(async (req, res, next) => {
         data: docs,
       },
     });
-  });   }
+  });
+}

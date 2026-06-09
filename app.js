@@ -10,6 +10,8 @@ import cors from 'cors';
 import AppError from './utils/appError.js';
 import globalErrorHandler from './controllers/errorController.js';
 import requestLogger from './utils/requestLogger.js';
+import userRouter from './routes/userRoutes.js';
+import messageRouter from './routes/messageRoutes.js';
 
 const app = express();
 if (process.env.NODE_ENV === 'production') {

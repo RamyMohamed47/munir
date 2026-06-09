@@ -44,9 +44,9 @@ const createStreams = () => {
   if (getLogLevel() === 'silent') {
     return [
       {
-        stream: destination({
-          dest: process.platform === 'win32' ? 'NUL' : '/dev/null',
-        }),
+        stream: {
+          write() {},
+        },
       },
     ];
   }

@@ -1,5 +1,5 @@
-import catchAsync from './../utils/catchAsync';
-import AppError from './../utils/appError';
+import catchAsync from './../utils/catchAsync.js';
+import AppError from './../utils/appError.js';
 import APIFeatures from './../utils/apiFeatures.js';
 
 export function deleteOne(Model) {

@@ -1,6 +1,7 @@
 # Logs
 logs
 *.log
+NUL
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -70,6 +71,9 @@ web_modules/
 *.env
 .env.*
 !.env.example
+
+# Local Firebase/admin SDK config
+config/
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

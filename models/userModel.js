@@ -1,5 +1,7 @@
 import { Schema, model } from 'mongoose';
-import { isEmail } from 'validator';
+import validator from 'validator';
+
+const { isEmail } = validator;
 
 const userSchema = Schema({
   name: {

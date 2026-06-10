@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import AppError from './appError.js';
@@ -7,31 +5,23 @@ import AppError from './appError.js';
 let firebaseAuth;
 
 const loadServiceAccount = () => {
-  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+  const {
+    FIREBASE_PROJECT_ID: projectId,
+    FIREBASE_CLIENT_EMAIL: clientEmail,
+    FIREBASE_PRIVATE_KEY: privateKey,
+  } = process.env;
 
-  if (!serviceAccountPath) {
+  if (!projectId || !clientEmail || !privateKey) {
     throw new AppError(
-      'FIREBASE_SERVICE_ACCOUNT_PATH is not configured',
+      'Firebase Admin credentials are not fully configured',
       500,
     );
   }
-
-  const resolvedPath = path.resolve(process.cwd(), serviceAccountPath);
-
-  if (!fs.existsSync(resolvedPath)) {
-    throw new AppError(
-      `Firebase service account file not found at ${serviceAccountPath}`,
-      500,
-    );
-  }
-
-  const rawServiceAccount = fs.readFileSync(resolvedPath, 'utf8');
-  const serviceAccount = JSON.parse(rawServiceAccount);
 
   return {
-    projectId: serviceAccount.project_id,
-    clientEmail: serviceAccount.client_email,
-    privateKey: serviceAccount.private_key.replace(/\\n/g, '\n'),
+    projectId,
+    clientEmail,
+    privateKey: privateKey.replace(/\\n/g, '\n'),
   };
 };
 

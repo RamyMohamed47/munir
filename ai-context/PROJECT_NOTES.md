@@ -1,14 +1,15 @@
 # Munir Project Notes
 
-Last reviewed: 2026-06-09
+Last reviewed: 2026-06-10
 
 ## Current Review Findings
 
 - `controllers/authController.js` now owns Firebase token verification and Mongo user sync. Any future auth route should reuse `protect` instead of reimplementing token parsing.
-- `utils/firebaseAdmin.js` expects `FIREBASE_SERVICE_ACCOUNT_PATH` to point at the ignored service account JSON inside `config/`.
-- `routes/userRoutes.js` exposes protected `GET /api/v1/users/me`. Client applications are expected to handle Firebase login/signup and send Bearer ID tokens to the backend.
-- `routes/messageRoutes.js` still keeps message retrieval public. Protect it later only if the product decision changes.
-- `controllers/messageController.js` still relies on `req.body.SMI` for the message selection API and populates the referenced user name.
+- `utils/firebaseAdmin.js` expects `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` to be present in environment variables.
+- `.env.example` now exists as the shareable placeholder file for local setup; real secrets stay in `config.env` or deployment secret storage.
+- `routes/userRoutes.js` now exposes admin-only user list/delete, admin-only `/statistics`, protected `/me`, and protected nested `/:id/messages` with self-or-admin access control.
+- `routes/messageRoutes.js` protects `scheduled-messages` for logged-in users and keeps admin-only root CRUD routes.
+- `controllers/messageController.js` uses `req.body.SMI` only for scheduled-message exclusion.
 - `controllers/errorController.js` only sends responses when `NODE_ENV` is exactly `development` or `production`; another value may leave errors without a response.
 - `models/userModel.js` must import `validator` as a default import in this runtime; the package does not expose `isEmail` as a named ESM export here.
 - `utils/apiFeatures.js` defaults sorting to `-createdAt`, but the current schemas do not define timestamps or `createdAt`.
@@ -23,10 +24,10 @@ Last reviewed: 2026-06-09
 npm start
 ```
 
-- Run the focused auth, route, and message controller tests:
+- Run the focused auth, route, message, and statistics tests:
 
 ```powershell
-node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/authController.test.js tests/userRoutes.test.js tests/messageController.test.js --runInBand
+node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/authController.test.js tests/userRoutes.test.js tests/messageController.test.js tests/messageRoutes.test.js tests/statisticsController.test.js --runInBand
 ```
 
 - Package scripts currently present:
@@ -44,8 +45,8 @@ npm run start:prod
 
 - `server.js` expects `config.env` to provide `DATABASE` and `DATABASE_PASSWORD`.
 - `DATABASE` must include `<PASSWORD>` because `server.js` calls `.replace('<PASSWORD>', process.env.DATABASE_PASSWORD)`.
-- `config/` is ignored by git so the Firebase admin service account JSON stays out of source control.
-- `FIREBASE_SERVICE_ACCOUNT_PATH` should point at the service account JSON when running auth-backed routes or tests that exercise Firebase Admin.
+- `config/` is still ignored by git, but Firebase Admin now reads credentials from environment variables instead of a runtime JSON file.
+- `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` must be present when running auth-backed routes outside mocked tests.
 - Logging writes to `logs/app.log` unless log level is silent.
 - In test environments, logger level becomes `silent` when `NODE_ENV=test` or `JEST_WORKER_ID` is set.
 

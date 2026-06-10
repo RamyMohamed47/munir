@@ -1,38 +1,40 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
 const populateMock = jest.fn();
-const findMock = jest.fn();
+const countDocumentsMock = jest.fn();
+const skipMock = jest.fn();
+const findOneMock = jest.fn();
 
 await jest.unstable_mockModule('../models/messageModel.js', () => ({
   default: {
-    find: findMock,
+    countDocuments: countDocumentsMock,
+    findOne: findOneMock,
   },
 }));
 
-const { getMessages } = await import('../controllers/messageController.js');
+const { getScheduledMessage } = await import('../controllers/messageController.js');
+const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0));
 
-describe('getMessages', () => {
+describe('messageController', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('returns matched messages populated with the user name', async () => {
-    const messages = [
-      {
-        message: 'Keep going',
-        shownMessageIndex: 2,
-        user: { name: 'Sara' },
-      },
-      {
-        message: 'Stay focused',
-        shownMessageIndex: 5,
-        user: { name: 'Omar' },
-      },
-    ];
+  it('returns a random approved scheduled message outside the SMI array', async () => {
+    const scheduledMessage = {
+      message: 'Approved quote',
+      shownMessageIndex: 8,
+      state: 'Approved',
+      user: { name: 'Munir' },
+    };
 
-    populateMock.mockResolvedValue(messages);
-    findMock.mockReturnValue({
+    countDocumentsMock.mockResolvedValue(3);
+    populateMock.mockResolvedValue(scheduledMessage);
+    skipMock.mockReturnValue({
       populate: populateMock,
+    });
+    findOneMock.mockReturnValue({
+      skip: skipMock,
     });
 
     const req = {
@@ -46,20 +48,48 @@ describe('getMessages', () => {
     };
     const next = jest.fn();
 
-    await getMessages(req, res, next);
+    getScheduledMessage(req, res, next);
+    await flushPromises();
 
-    expect(findMock).toHaveBeenCalledWith({
-      shownMessageIndex: { $in: [2, 5] },
+    expect(countDocumentsMock).toHaveBeenCalledWith({
+      state: 'Approved',
+      shownMessageIndex: { $nin: [2, 5] },
     });
+    expect(findOneMock).toHaveBeenCalledWith({
+      state: 'Approved',
+      shownMessageIndex: { $nin: [2, 5] },
+    });
+    expect(skipMock).toHaveBeenCalledWith(expect.any(Number));
     expect(populateMock).toHaveBeenCalledWith('user', 'name');
-    expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       status: 'success',
-      results: 2,
       data: {
-        data: messages,
+        data: scheduledMessage,
       },
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 when no scheduled message is available', async () => {
+    countDocumentsMock.mockResolvedValue(0);
+
+    const req = {
+      body: {
+        SMI: [2, 5],
+      },
+    };
+    const res = {};
+    const next = jest.fn();
+
+    getScheduledMessage(req, res, next);
+    await flushPromises();
+
+    expect(findOneMock).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls[0][0]).toMatchObject({
+      statusCode: 404,
+      status: 'fail',
     });
   });
 });

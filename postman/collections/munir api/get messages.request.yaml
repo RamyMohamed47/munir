@@ -1,0 +1,13 @@
+$kind: http-request
+method: GET
+url: '{{base_url}}/messages'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "SMI": [0, 1, 2]
+    }

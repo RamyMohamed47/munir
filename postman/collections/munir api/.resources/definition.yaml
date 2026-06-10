@@ -1,0 +1,10 @@
+$kind: collection
+name: 'Munir API'
+description: 'Collection generated from the Express implementation in this repository.'
+variables:
+  - key: base_url
+    value: 'http://localhost:3000/api/v1'
+    description: 'Base URL for the local API server'
+  - key: firebase_id_token
+    value: 'REPLACE_WITH_FIREBASE_ID_TOKEN'
+    description: 'Bearer token used by protected endpoints'

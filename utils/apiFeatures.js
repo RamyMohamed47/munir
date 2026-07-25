@@ -1,3 +1,5 @@
+import mongoSanitize from 'express-mongo-sanitize';
+
 class APIFeatures {
   constructor(query, queryString) {
     this.query = query;
@@ -5,7 +7,7 @@ class APIFeatures {
   }
 
   filter() {
-    const queryObj = { ...this.queryString };
+    const queryObj = mongoSanitize.sanitize({ ...this.queryString });
     const excludedFields = ['page', 'limit', 'sort', 'fields'];
     excludedFields.forEach((el) => delete queryObj[el]);
 

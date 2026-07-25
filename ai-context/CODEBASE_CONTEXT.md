@@ -1,6 +1,6 @@
 # Munir Codebase Context
 
-Last reviewed: 2026-06-10
+Last reviewed: 2026-07-25
 
 ## Purpose
 
@@ -8,7 +8,7 @@ Munir is an Express/Mongoose backend for positive daily quotes and motivational 
 
 ## Runtime Shape
 
-- `server.js` loads `config.env`, connects Mongoose using `DATABASE` and `DATABASE_PASSWORD`, imports `app.js`, then starts the HTTP server.
+- `server.js` loads `config.env`, connects Mongoose using `DATABASE` and `DATABASE_PASSWORD`, imports `app.js`, starts the HTTP server, then starts enabled background jobs after Mongo connects.
 - `.env.example` documents the required local environment shape without carrying real secrets.
 - `app.js` creates the Express app, applies security/logging/body parsing middleware, mounts API routers, installs the 404 handler, then installs the global error handler.
 - API responses generally follow the existing Natours-style shape:
@@ -28,14 +28,16 @@ Munir is an Express/Mongoose backend for positive daily quotes and motivational 
 - `models/userModel.js`: Mongoose `User` model with `name`, `email`, `role`, and `firebaseUid`, with email validation via `validator.isEmail`.
 - `models/messageModel.js`: Mongoose `Message` model with `message`, `time`, `state`, `user`, `likes`, and unique numeric `shownMessageIndex`.
 - `controllers/handlerFactory.js`: Generic CRUD factory helpers: `createOne`, `getOne`, `getAll`, `updateOne`, `deleteOne`.
-- `controllers/messageController.js`: Contains scheduled-message selection, user-scoped message listing, and admin message CRUD handlers.
+- `controllers/messageController.js`: Contains scheduled-message selection, simple user-scoped message listing, and admin message CRUD handlers.
 - `controllers/userController.js`: Thin wrappers around the factory helpers for user CRUD plus `getMe`, user statistics, and self-or-admin access control for nested user message routes.
 - `controllers/authController.js`: Exports `protect` and `restrictTo(...roles)`. `protect` verifies Bearer Firebase ID tokens, syncs the Mongo user, and attaches the Mongo document to `req.user`.
 - `controllers/errorController.js`: Global Express error handler. It has separate development and production response paths.
 - `utils/catchAsync.js`: Wraps async Express handlers and forwards rejections to `next`.
 - `utils/appError.js`: Operational error class with `statusCode`, `status`, and `isOperational`.
 - `utils/firebaseAdmin.js`: Lazily initializes Firebase Admin from `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`, then exposes `getFirebaseAuth()`.
-- `utils/apiFeatures.js`: Query helper for filtering, sorting, field limiting, and pagination.
+- `jobs/rejectedMessagesCleanupJob.js`: `node-cron` background cleanup for permanently deleting `Rejected` messages every Friday at 00:00 UTC when `ENABLE_SCHEDULED_JOBS=true`.
+- `app.js` uses `express-mongo-sanitize` and `xss-clean` without their default middleware wrappers because those wrappers reassign `req.query` and break on Express 5. Body input is sanitized globally; query filter sanitization happens inside `utils/apiFeatures.js`.
+- `utils/apiFeatures.js`: Query helper for filtering, sorting, field limiting, and pagination. It sanitizes query filters before passing them into Mongo.
 - `utils/logger.js` and `utils/requestLogger.js`: Pino logger setup with request IDs and redaction.
 
 ## Routes
@@ -69,7 +71,7 @@ Munir is an Express/Mongoose backend for positive daily quotes and motivational 
   - `GET /api/v1/users`: admin-only list endpoint using `APIFeatures`.
   - `GET /api/v1/users/statistics`: admin-only aggregate counts for users, messages, messages by state, and total likes.
   - `DELETE /api/v1/users/:id`: admin-only delete endpoint.
-  - `GET /api/v1/users/:id/messages`: protected nested route; requester must be that user or an admin.
+  - `GET /api/v1/users/:id/messages`: protected nested route; requester must be that user or an admin. Returns that user's messages directly without `APIFeatures`.
   - `GET /api/v1/users/me`: protected current-user endpoint.
 
 ## Data Relationships
@@ -81,15 +83,16 @@ Munir is an Express/Mongoose backend for positive daily quotes and motivational 
 ## Testing
 
 - The focused tests are `tests/authController.test.js`, `tests/userRoutes.test.js`, and `tests/messageController.test.js`.
-- `authController.test.js` mocks Firebase Admin and the `User` model to verify Bearer token validation, Mongo upsert, missing profile data, and duplicate-email conflict handling.
+- `authController.test.js` mocks Firebase Admin and the `User` model to verify Bearer token validation, Mongo upsert, missing profile data, and duplicate-email conflict handling. As of this review, it does not match the current `authController.js` payload shape because the controller reads `user_id` and `role`.
 - `userRoutes.test.js` mounts the router in a minimal Express app to verify `GET /api/v1/users/me`.
 - `messageController.test.js` mocks the `Message` model and verifies scheduled-message selection behavior.
 - `messageRoutes.test.js` verifies message route protection and static route wiring.
 - `statisticsController.test.js` verifies the statistics response shape from aggregate counts through `userController.getStatistics`.
-- The direct command that passed during review was:
+- `rejectedMessagesCleanupJob.test.js` verifies rejected-message deletion, node-cron schedule/options, disabled-job behavior, scheduled callback execution, and failure logging.
+- The cleanup-job command that passed during review was:
 
 ```powershell
-node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/authController.test.js tests/userRoutes.test.js tests/messageController.test.js tests/messageRoutes.test.js tests/statisticsController.test.js --runInBand
+node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/rejectedMessagesCleanupJob.test.js --runInBand
 ```
 
 ## Agent Maintenance Rule

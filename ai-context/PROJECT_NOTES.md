@@ -1,15 +1,19 @@
 # Munir Project Notes
 
-Last reviewed: 2026-06-10
+Last reviewed: 2026-07-25
 
 ## Current Review Findings
 
 - `controllers/authController.js` now owns Firebase token verification and Mongo user sync. Any future auth route should reuse `protect` instead of reimplementing token parsing.
+- Current `authController.test.js` expectations are stale against `controllers/authController.js`: the tests expect `uid`-based sync, while the controller currently reads `user_id` and `role`.
 - `utils/firebaseAdmin.js` expects `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` to be present in environment variables.
+- `app.js` avoids the default `express-mongo-sanitize` and `xss-clean` middleware wrappers because they reassign `req.query`, which is read-only in Express 5. Request body sanitization remains global, while query-filter sanitization lives in `utils/apiFeatures.js`.
 - `.env.example` now exists as the shareable placeholder file for local setup; real secrets stay in `config.env` or deployment secret storage.
 - `routes/userRoutes.js` now exposes admin-only user list/delete, admin-only `/statistics`, protected `/me`, and protected nested `/:id/messages` with self-or-admin access control.
 - `routes/messageRoutes.js` protects `scheduled-messages` for logged-in users and keeps admin-only root CRUD routes.
 - `controllers/messageController.js` uses `req.body.SMI` only for scheduled-message exclusion.
+- `controllers/messageController.js` lists a user's messages directly for the nested user route; that bounded endpoint does not use `APIFeatures`.
+- `jobs/rejectedMessagesCleanupJob.js` uses `node-cron` to delete `Rejected` messages on a Friday 00:00 UTC schedule when `ENABLE_SCHEDULED_JOBS=true`; deploy only one scheduler-enabled instance unless distributed coordination is enabled.
 - `controllers/errorController.js` only sends responses when `NODE_ENV` is exactly `development` or `production`; another value may leave errors without a response.
 - `models/userModel.js` must import `validator` as a default import in this runtime; the package does not expose `isEmail` as a named ESM export here.
 - `utils/apiFeatures.js` defaults sorting to `-createdAt`, but the current schemas do not define timestamps or `createdAt`.
@@ -28,6 +32,7 @@ npm start
 
 ```powershell
 node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/authController.test.js tests/userRoutes.test.js tests/messageController.test.js tests/messageRoutes.test.js tests/statisticsController.test.js --runInBand
+node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/rejectedMessagesCleanupJob.test.js --runInBand
 ```
 
 - Package scripts currently present:
@@ -47,6 +52,7 @@ npm run start:prod
 - `DATABASE` must include `<PASSWORD>` because `server.js` calls `.replace('<PASSWORD>', process.env.DATABASE_PASSWORD)`.
 - `config/` is still ignored by git, but Firebase Admin now reads credentials from environment variables instead of a runtime JSON file.
 - `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` must be present when running auth-backed routes outside mocked tests.
+- `ENABLE_SCHEDULED_JOBS=true` enables the rejected-message cleanup scheduler; keep it false or unset in test/local contexts where background deletion should not run.
 - Logging writes to `logs/app.log` unless log level is silent.
 - In test environments, logger level becomes `silent` when `NODE_ENV=test` or `JEST_WORKER_ID` is set.
 

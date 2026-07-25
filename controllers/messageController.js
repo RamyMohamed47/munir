@@ -2,7 +2,6 @@ import Message from './../models/messageModel.js';
 import { createOne, deleteOne, getAll, updateOne } from './handlerFactory.js';
 import catchAsync from './../utils/catchAsync.js';
 import AppError from '../utils/appError.js';
-import APIFeatures from './../utils/apiFeatures.js';
 
 export const getScheduledMessage = catchAsync(async (req, res, next) => {
   const { SMI } = req.body || {};
@@ -53,16 +52,9 @@ export const updateMessage = updateOne(Message);
 export const deleteMessage = deleteOne(Message);
 
 export const getMessagesByUserId = catchAsync(async (req, res) => {
-  const features = new APIFeatures(
-    Message.find({ user: req.params.id }).populate('user', 'name'),
-    req.query,
-  )
-    .filter()
-    .sort()
-    .limitFields()
-    .paginate();
-
-  const messages = await features.query;
+  const messages = await Message.find({ user: req.params.id })
+    .populate('user', 'name')
+    .select('-__v');
 
   res.status(200).json({
     status: 'success',

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import logger from './utils/logger.js';
+import { startRejectedMessagesCleanupJob } from './jobs/rejectedMessagesCleanupJob.js';
 
 dotenv.config({ path: './config.env' });
 
@@ -16,8 +17,11 @@ const dB = process.env.DATABASE.replace(
   process.env.DATABASE_PASSWORD,
 );
 
+let rejectedMessagesCleanupJob;
+
 mongoose.connect(dB).then(() => {
   logger.info({ event: 'db.connected' }, 'DB connection successful');
+  rejectedMessagesCleanupJob = startRejectedMessagesCleanupJob();
 });
 
 const port = process.env.PORT || 3000;
@@ -42,6 +46,7 @@ process.on('SIGTERM', () => {
     { event: 'process.sigterm' },
     'SIGTERM received. Shutting down gracefully.',
   );
+  rejectedMessagesCleanupJob?.stop();
   server.close(() => {
     logger.info({ event: 'process.terminated' }, 'Process terminated');
   });

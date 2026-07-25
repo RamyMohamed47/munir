@@ -2,7 +2,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
-import xss from 'xss-clean';
+import xssClean from 'xss-clean/lib/xss.js';
 import hpp from 'hpp';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
@@ -12,6 +12,8 @@ import globalErrorHandler from './controllers/errorController.js';
 import requestLogger from './utils/requestLogger.js';
 import userRouter from './routes/userRoutes.js';
 import messageRouter from './routes/messageRoutes.js';
+
+const { clean: cleanXss } = xssClean;
 
 const app = express();
 if (process.env.NODE_ENV === 'production') {
@@ -50,9 +52,18 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 
-app.use(mongoSanitize());
+app.use((req, res, next) => {
+  if (req.body) {
+    mongoSanitize.sanitize(req.body);
+    req.body = cleanXss(req.body);
+  }
 
-app.use(xss());
+  if (req.params) {
+    mongoSanitize.sanitize(req.params);
+  }
+
+  next();
+});
 
 app.use(
   hpp({

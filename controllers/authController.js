@@ -3,15 +3,15 @@ import catchAsync from './../utils/catchAsync.js';
 import AppError from './../utils/appError.js';
 import { getFirebaseAuth } from './../utils/firebaseAdmin.js';
 
-const syncFirebaseUser = async ({ uid, email, name }) => {
-  if (!uid || !email || !name) {
+const syncFirebaseUser = async ({ user_id, email, name, role}) => {
+  if (!user_id || !email ||!name || !role) {
     throw new AppError('Firebase user is missing required data', 400);
   }
 
   try {
     return await User.findOneAndUpdate(
-      { firebaseUid: uid },
-      { name, email, firebaseUid: uid },
+      { firebaseUid: user_id },
+      {  email, firebaseUid: user_id , name, role},
       {
         new: true,
         upsert: true,
@@ -53,10 +53,10 @@ export const protect = catchAsync(async (req, res, next) => {
     return next(new AppError('Invalid token, please log in again', 401));
   }
 
-  const { uid, email, name } = decodedToken;
+  const { user_id, email, name, role} = decodedToken;
 
   try {
-    const user = await syncFirebaseUser({ uid, email, name });
+    const user = await syncFirebaseUser({ user_id, email, name, role });
     req.user = user;
     return next();
   } catch (error) {

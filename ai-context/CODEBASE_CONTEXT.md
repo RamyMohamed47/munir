@@ -1,6 +1,6 @@
 # Munir Codebase Context
 
-Last reviewed: 2026-07-25
+Last reviewed: 2026-08-28
 
 ## Purpose
 
@@ -39,10 +39,15 @@ Munir is an Express/Mongoose backend for positive daily quotes and motivational 
 - `app.js` uses `express-mongo-sanitize` and `xss-clean` without their default middleware wrappers because those wrappers reassign `req.query` and break on Express 5. Body input is sanitized globally; query filter sanitization happens inside `utils/apiFeatures.js`.
 - `utils/apiFeatures.js`: Query helper for filtering, sorting, field limiting, and pagination. It sanitizes query filters before passing them into Mongo.
 - `utils/logger.js` and `utils/requestLogger.js`: Pino logger setup with request IDs and redaction.
+- `docs/openapi.js`: OpenAPI 3.0 definition for the implemented API, served through Swagger UI by `app.js`.
+- `scripts/exportOpenApi.js`: Generates the portable `docs/openapi.json` contract from `docs/openapi.js`; run it with `npm run docs:export` after API contract changes.
 
 ## Routes
 
-- `GET /api/v1/messages/scheduled-messages`
+- `GET /api-docs`: interactive Swagger UI for the API contract.
+- `GET /api-docs.json`: machine-readable OpenAPI document suitable for import or client generation.
+
+- `POST /api/v1/messages/scheduled-messages`
   - Handler: `authController.protect` then `messageController.getScheduledMessage`
   - Body: `{ "SMI": [1, 2, 3] }`
   - Header: `Authorization: Bearer <Firebase ID token>`
@@ -89,6 +94,7 @@ Munir is an Express/Mongoose backend for positive daily quotes and motivational 
 - `messageRoutes.test.js` verifies message route protection and static route wiring.
 - `statisticsController.test.js` verifies the statistics response shape from aggregate counts through `userController.getStatistics`.
 - `rejectedMessagesCleanupJob.test.js` verifies rejected-message deletion, node-cron schedule/options, disabled-job behavior, scheduled callback execution, and failure logging.
+- `swaggerDocs.test.js` verifies the raw OpenAPI route, implemented path coverage, Firebase Bearer scheme, Swagger UI route, and that `docs/openapi.json` matches the application spec.
 - The cleanup-job command that passed during review was:
 
 ```powershell

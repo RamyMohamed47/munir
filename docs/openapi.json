@@ -1,0 +1,1235 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Munir API",
+    "version": "1.0.0",
+    "description": "HTTP API consumed by the Munir Flutter application. Firebase handles client authentication; this API verifies Firebase ID tokens and stores application users in MongoDB."
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "Current server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "Authenticated user synchronization."
+    },
+    {
+      "name": "Messages",
+      "description": "Scheduled and administrative message operations."
+    },
+    {
+      "name": "Users",
+      "description": "User administration and user-owned messages."
+    },
+    {
+      "name": "Statistics",
+      "description": "Administrative application statistics."
+    }
+  ],
+  "paths": {
+    "/users/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get and synchronize the current user",
+        "operationId": "getCurrentUser",
+        "description": "Verifies the Firebase ID token, creates or updates the matching MongoDB user, and returns that user.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The authenticated MongoDB user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The Firebase profile is missing required claims.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The Firebase ID token is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The Firebase email conflicts with another MongoDB user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/scheduled-messages": {
+      "post": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Get a random unshown approved message",
+        "operationId": "getScheduledMessage",
+        "description": "Returns one random approved message whose shownMessageIndex is not included in SMI.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduledMessageRequest"
+              },
+              "example": {
+                "SMI": [
+                  1,
+                  2,
+                  3
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "One eligible scheduled message.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "SMI is missing, is not an array, or contains a non-number value.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The Firebase ID token is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No eligible approved message is available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages": {
+      "get": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "List messages",
+        "operationId": "listMessages",
+        "description": "Admin only. Supports filtering, sorting, field selection, and pagination.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Page number."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 100
+            },
+            "description": "Maximum number of records returned."
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated fields. Prefix a field with - for descending order, for example -time."
+          },
+          {
+            "in": "query",
+            "name": "fields",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated fields to include in each result."
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "$ref": "#/components/schemas/MessageState"
+            },
+            "description": "Filter by moderation state."
+          },
+          {
+            "in": "query",
+            "name": "user",
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            },
+            "description": "Filter by MongoDB user id."
+          },
+          {
+            "in": "query",
+            "name": "shownMessageIndex",
+            "schema": {
+              "type": "number"
+            },
+            "description": "Filter by shown message index."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of messages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The Firebase ID token is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated user is not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Create a message",
+        "operationId": "createMessage",
+        "description": "Admin only. The backend assigns the authenticated admin as the message author.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created message.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body fails message validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The Firebase ID token is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated user is not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MessageId"
+        }
+      ],
+      "patch": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Update a message",
+        "operationId": "updateMessage",
+        "description": "Admin only. Commonly used to approve or reject a message.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMessageRequest"
+              },
+              "example": {
+                "state": "Approved"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated message.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id or request body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The Firebase ID token is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated user is not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No message exists with the supplied id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Delete a message",
+        "operationId": "deleteMessage",
+        "description": "Admin only.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Message deleted. The response has no body."
+          },
+          "400": {
+            "description": "The message id is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The Firebase ID token is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated user is not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No message exists with the supplied id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "List users",
+        "operationId": "listUsers",
+        "description": "Admin only. Supports filtering, sorting, field selection, and pagination.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Page number."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 100
+            },
+            "description": "Maximum number of records returned."
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated fields. Prefix a field with - for descending order, for example -time."
+          },
+          {
+            "in": "query",
+            "name": "fields",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated fields to include in each result."
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "schema": {
+              "$ref": "#/components/schemas/UserRole"
+            },
+            "description": "Filter by application role."
+          },
+          {
+            "in": "query",
+            "name": "email",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            },
+            "description": "Filter by exact email."
+          },
+          {
+            "in": "query",
+            "name": "firebaseUid",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by Firebase user id."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of users.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The Firebase ID token is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated user is not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/statistics": {
+      "get": {
+        "tags": [
+          "Statistics"
+        ],
+        "summary": "Get application statistics",
+        "operationId": "getStatistics",
+        "description": "Admin only. Returns user and message totals, message counts by state, and total likes.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current application statistics.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatisticsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The Firebase ID token is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated user is not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{id}/messages": {
+      "get": {
+        "tags": [
+          "Users",
+          "Messages"
+        ],
+        "summary": "List messages written by a user",
+        "operationId": "getUserMessages",
+        "description": "Available to the requested user and to administrators.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Messages written by the requested user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PopulatedMessageListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The Firebase ID token is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated user cannot access these messages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{id}": {
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Delete a user",
+        "operationId": "deleteUser",
+        "description": "Admin only. The id is the MongoDB user id, not the Firebase uid.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "User deleted. The response has no body."
+          },
+          "400": {
+            "description": "The user id is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The Firebase ID token is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated user is not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No user exists with the supplied id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Firebase ID token",
+        "description": "Use the Firebase ID token returned by Firebase Auth. Enter only the token; Swagger UI adds the Bearer prefix."
+      }
+    },
+    "parameters": {
+      "MessageId": {
+        "in": "path",
+        "name": "id",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/ObjectId"
+        },
+        "description": "MongoDB message id."
+      },
+      "UserId": {
+        "in": "path",
+        "name": "id",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/ObjectId"
+        },
+        "description": "MongoDB user id."
+      }
+    },
+    "schemas": {
+      "ObjectId": {
+        "type": "string",
+        "pattern": "^[a-fA-F0-9]{24}$",
+        "example": "66c000000000000000000001"
+      },
+      "UserRole": {
+        "type": "string",
+        "enum": [
+          "user",
+          "admin",
+          "moderator"
+        ],
+        "example": "user"
+      },
+      "MessageState": {
+        "type": "string",
+        "enum": [
+          "Approved",
+          "Pending",
+          "Rejected"
+        ],
+        "example": "Approved"
+      },
+      "User": {
+        "type": "object",
+        "required": [
+          "_id",
+          "name",
+          "email",
+          "role",
+          "firebaseUid"
+        ],
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "name": {
+            "type": "string",
+            "example": "User Name"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@example.com"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "firebaseUid": {
+            "type": "string",
+            "example": "firebase-user-id"
+          },
+          "__v": {
+            "type": "integer",
+            "example": 0
+          }
+        }
+      },
+      "MessageAuthor": {
+        "type": "object",
+        "required": [
+          "_id",
+          "name"
+        ],
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "name": {
+            "type": "string",
+            "example": "User Name"
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "required": [
+          "_id",
+          "message",
+          "time",
+          "state",
+          "user",
+          "likes",
+          "shownMessageIndex"
+        ],
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{24}$",
+            "example": "66c000000000000000000101"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 450,
+            "example": "Keep going."
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-08-28T00:00:00.000Z"
+          },
+          "state": {
+            "$ref": "#/components/schemas/MessageState"
+          },
+          "user": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ObjectId"
+              },
+              {
+                "$ref": "#/components/schemas/MessageAuthor"
+              }
+            ]
+          },
+          "likes": {
+            "type": "number",
+            "default": 0,
+            "example": 0
+          },
+          "shownMessageIndex": {
+            "type": "number",
+            "example": 12
+          },
+          "__v": {
+            "type": "integer",
+            "example": 0
+          }
+        }
+      },
+      "PopulatedMessage": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Message"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "user": {
+                "$ref": "#/components/schemas/MessageAuthor"
+              }
+            }
+          }
+        ]
+      },
+      "ScheduledMessageRequest": {
+        "type": "object",
+        "required": [
+          "SMI"
+        ],
+        "properties": {
+          "SMI": {
+            "type": "array",
+            "description": "shownMessageIndex values already displayed to the user.",
+            "items": {
+              "type": "number"
+            },
+            "example": [
+              1,
+              2,
+              3
+            ]
+          }
+        }
+      },
+      "CreateMessageRequest": {
+        "type": "object",
+        "required": [
+          "message",
+          "shownMessageIndex"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 450,
+            "example": "Keep going."
+          },
+          "state": {
+            "$ref": "#/components/schemas/MessageState"
+          },
+          "likes": {
+            "type": "number",
+            "default": 0,
+            "example": 0
+          },
+          "shownMessageIndex": {
+            "type": "number",
+            "example": 12
+          }
+        }
+      },
+      "UpdateMessageRequest": {
+        "type": "object",
+        "minProperties": 1,
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 450
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "$ref": "#/components/schemas/MessageState"
+          },
+          "user": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "likes": {
+            "type": "number"
+          },
+          "shownMessageIndex": {
+            "type": "number"
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          }
+        }
+      },
+      "MessageResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Message"
+              }
+            }
+          }
+        }
+      },
+      "UserListResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "results",
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "results": {
+            "type": "integer",
+            "example": 1
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
+      },
+      "MessageListResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "results",
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "results": {
+            "type": "integer",
+            "example": 1
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          }
+        }
+      },
+      "PopulatedMessageListResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "results",
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "results": {
+            "type": "integer",
+            "example": 1
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PopulatedMessage"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Statistics": {
+        "type": "object",
+        "required": [
+          "totalUsers",
+          "totalMessages",
+          "messagesByState",
+          "totalLikes"
+        ],
+        "properties": {
+          "totalUsers": {
+            "type": "integer",
+            "example": 10
+          },
+          "totalMessages": {
+            "type": "integer",
+            "example": 50
+          },
+          "messagesByState": {
+            "type": "object",
+            "required": [
+              "Approved",
+              "Pending",
+              "Rejected"
+            ],
+            "properties": {
+              "Approved": {
+                "type": "integer",
+                "example": 30
+              },
+              "Pending": {
+                "type": "integer",
+                "example": 15
+              },
+              "Rejected": {
+                "type": "integer",
+                "example": 5
+              }
+            }
+          },
+          "totalLikes": {
+            "type": "number",
+            "example": 120
+          }
+        }
+      },
+      "StatisticsResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Statistics"
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "message"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "fail"
+          },
+          "message": {
+            "type": "string",
+            "example": "Error message"
+          }
+        }
+      }
+    }
+  }
+}

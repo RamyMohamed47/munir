@@ -1,6 +1,6 @@
 # Munir Project Notes
 
-Last reviewed: 2026-07-25
+Last reviewed: 2026-08-28
 
 ## Current Review Findings
 
@@ -10,7 +10,8 @@ Last reviewed: 2026-07-25
 - `app.js` avoids the default `express-mongo-sanitize` and `xss-clean` middleware wrappers because they reassign `req.query`, which is read-only in Express 5. Request body sanitization remains global, while query-filter sanitization lives in `utils/apiFeatures.js`.
 - `.env.example` now exists as the shareable placeholder file for local setup; real secrets stay in `config.env` or deployment secret storage.
 - `routes/userRoutes.js` now exposes admin-only user list/delete, admin-only `/statistics`, protected `/me`, and protected nested `/:id/messages` with self-or-admin access control.
-- `routes/messageRoutes.js` protects `scheduled-messages` for logged-in users and keeps admin-only root CRUD routes.
+- `routes/messageRoutes.js` exposes protected `POST /messages/scheduled-messages` for logged-in users and keeps admin-only root CRUD routes.
+- `app.js` serves interactive Swagger UI at `/api-docs` and the OpenAPI 3.0 document at `/api-docs.json`; `docs/openapi.js` is the source of truth, while `npm run docs:export` regenerates the portable `docs/openapi.json` file.
 - `controllers/messageController.js` uses `req.body.SMI` only for scheduled-message exclusion.
 - `controllers/messageController.js` lists a user's messages directly for the nested user route; that bounded endpoint does not use `APIFeatures`.
 - `jobs/rejectedMessagesCleanupJob.js` uses `node-cron` to delete `Rejected` messages on a Friday 00:00 UTC schedule when `ENABLE_SCHEDULED_JOBS=true`; deploy only one scheduler-enabled instance unless distributed coordination is enabled.
@@ -28,11 +29,18 @@ Last reviewed: 2026-07-25
 npm start
 ```
 
+- Regenerate the shareable Swagger file:
+
+```powershell
+npm run docs:export
+```
+
 - Run the focused auth, route, message, and statistics tests:
 
 ```powershell
 node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/authController.test.js tests/userRoutes.test.js tests/messageController.test.js tests/messageRoutes.test.js tests/statisticsController.test.js --runInBand
 node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/rejectedMessagesCleanupJob.test.js --runInBand
+node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/swaggerDocs.test.js --runInBand
 ```
 
 - Package scripts currently present:

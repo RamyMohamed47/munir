@@ -7,11 +7,13 @@ import hpp from 'hpp';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
 import AppError from './utils/appError.js';
 import globalErrorHandler from './controllers/errorController.js';
 import requestLogger from './utils/requestLogger.js';
 import userRouter from './routes/userRoutes.js';
 import messageRouter from './routes/messageRoutes.js';
+import openApiDocument from './docs/openapi.js';
 
 const { clean: cleanXss } = xssClean;
 
@@ -72,6 +74,20 @@ app.use(
 );
 
 app.use(compression());
+
+app.get('/api-docs.json', (req, res) => {
+  res.status(200).json(openApiDocument);
+});
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(openApiDocument, {
+    customSiteTitle: 'Munir API Documentation',
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  }),
+);
 
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/messages', messageRouter);

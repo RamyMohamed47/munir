@@ -89,7 +89,7 @@ describe('message routes', () => {
 
   it('protects scheduled-messages requests for authenticated users', async () => {
     await request(app)
-      .get('/api/v1/messages/scheduled-messages')
+      .post('/api/v1/messages/scheduled-messages')
       .set('Authorization', 'Bearer firebase-token')
       .send({ SMI: [1, 2] })
       .expect(200);

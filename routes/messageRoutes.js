@@ -11,7 +11,7 @@ import {
 
 const messageRouter = Router();
 
-messageRouter.route('/scheduled-messages').get(protect, getScheduledMessage);
+messageRouter.route('/scheduled-messages').post(protect, getScheduledMessage);
 
 messageRouter
   .route('/')

@@ -53,6 +53,21 @@ There are no backend session cookies and no backend login/signup token issuing f
 
 ## API Overview
 
+Interactive Swagger documentation is available at `/api-docs`, and the raw
+OpenAPI document is available at `/api-docs.json` while the server is running.
+The written Flutter-facing contract is also available in
+[`docs/API_CONTRACT.md`](docs/API_CONTRACT.md).
+
+Generate the portable Swagger file before sharing it or after changing an
+endpoint:
+
+```powershell
+npm run docs:export
+```
+
+The generated [`docs/openapi.json`](docs/openapi.json) can be imported directly
+into Swagger Editor, Postman, or OpenAPI client-generation tools.
+
 Base path:
 
 ```text
@@ -63,7 +78,7 @@ Base path:
 
 | Method | Route | Access | Description |
 | --- | --- | --- | --- |
-| `GET` | `/messages/scheduled-messages` | Authenticated user | Returns one random approved message whose `shownMessageIndex` is not in `req.body.SMI`. |
+| `POST` | `/messages/scheduled-messages` | Authenticated user | Returns one random approved message whose `shownMessageIndex` is not in `req.body.SMI`. |
 | `GET` | `/messages` | Admin | Lists all messages with filtering, sorting, field limiting, and pagination. |
 | `POST` | `/messages` | Admin | Creates a message and assigns it to the authenticated admin user. |
 | `PATCH` | `/messages/:id` | Admin | Updates a message, commonly for approval or rejection state changes. |
